@@ -117,6 +117,34 @@ MAX_SEEN    = 8000       # ids recordados por cuenta para no reprocesar
 ONLY_UNREAD = False      # True = solo no leídos; False = organiza todo el inbox
 MARK_SEEN   = False      # False = NO marca como leído al organizar (no te oculta nada)
 
+# --- Purga: manda a la PAPELERA lo viejo que ya no sirve --------------------
+#  NUNCA borra de forma permanente: manda a la papelera, que Gmail y Outlook
+#  vacían solos a los 30 días. El espacio se libera igual, pero te queda un mes
+#  para rescatar cualquier cosa que se haya ido por error.
+PURGE_ENABLED     = True    # el barrido corre...
+PURGE_DRY_RUN     = True    # ...pero en SIMULACRO: solo reporta, no mueve nada.
+                            # Pon False cuando el reporte te convenza.
+PURGE_MAX_PER_RUN = 300     # tope por cuenta y corrida (freno de seguridad)
+
+#  Por categoría: días mínimos y si exige estar leído.
+#  days_unread = si NO lo has abierto, espera más tiempo antes de tumbarlo.
+PURGE_POLICIES = {
+    "Newsletters y Promos": {"days": 90, "require_read": False},
+    "Sospechoso":           {"days": 90, "require_read": False},
+    "Redes sociales":       {"days": 90, "require_read": True, "days_unread": 180},
+    "Personal":             {"days": 90, "require_read": True, "days_unread": 180},
+}
+
+#  Estas NUNCA se tocan, pase lo que pase (respaldo legal, trabajo, empleo).
+PURGE_NEVER = ["Importante", "Facturas y pagos", "Empleos", "Clientes",
+               "Trabajo Intercoast"]
+PURGE_KEEP_FLAGGED = True   # jamás tumba lo que marcaste con estrella/bandera
+
+# --- Reporte de correos pesados (lo que de verdad libera GB) ---------------
+HEAVY_REPORT = True
+HEAVY_MIN_MB = 5      # reporta correos de más de N MB
+HEAVY_TOP    = 10     # cuántos mostrarte
+
 # --- Reporte de desuscripción (NO se desuscribe solo) ----------------------
 #  Solo detecta y te reporta quién te spamea y de quién se puede dar de baja
 #  con un clic. La desuscripción real se activa aparte, con tu aprobación.

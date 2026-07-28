@@ -14,6 +14,7 @@ from collections import Counter
 import classify
 import config as cfg
 import notify
+import purge
 from gmail_client import GmailClient
 from outlook_client import OutlookClient
 
@@ -107,6 +108,43 @@ def _highlight(title, items, limit=6):
     return "\n".join(lines)
 
 
+def _purge_block(by_cat, samples, total, trashed):
+    """Qué se fue (o se iría) a la papelera."""
+    if not total:
+        return ""
+    if cfg.PURGE_DRY_RUN:
+        lines = [f"🧪 <b>SIMULACRO de limpieza</b> — mandaría <b>{total}</b> "
+                 f"correo(s) a la papelera:"]
+    else:
+        lines = [f"🗑️ <b>Limpieza</b> — mandé <b>{trashed}</b> correo(s) a la "
+                 f"papelera <i>(recuperables 30 días)</i>:"]
+    for cat, n in sorted(by_cat.items(), key=lambda x: -x[1]):
+        lines.append(f"   {_CAT_EMOJI.get(cat, '📂')} {notify.esc(cat)}: {n}")
+    if samples:
+        lines.append("<i>Ejemplos:</i>")
+        for cat, m in samples[:5]:
+            subj = (m.get("subject") or "(sin asunto)")[:60]
+            lines.append(f"   • {notify.esc(subj)}")
+    if cfg.PURGE_DRY_RUN:
+        lines.append("<i>No toqué nada todavía. Si te convence, lo activo.</i>")
+    return "\n".join(lines)
+
+
+def _heavy_block(items):
+    """Los correos que de verdad ocupan tu almacenamiento."""
+    if not items:
+        return ""
+    lines = [f"💾 <b>Los que más espacio ocupan</b> (+{cfg.HEAVY_MIN_MB} MB):"]
+    for it in items[:cfg.HEAVY_TOP]:
+        mb = it.get("size", 0) / (1024 * 1024)
+        subj = (it.get("subject") or "(sin asunto)")[:55]
+        acc = (it.get("account") or "").split("@")[0]
+        lines.append(f"   • <b>{mb:.1f} MB</b> — {notify.esc(subj)} "
+                     f"<i>({notify.esc(acc)})</i>")
+    lines.append("<i>Bórralos tú a mano: ahí está el espacio de verdad.</i>")
+    return "\n".join(lines)
+
+
 def _unsub_block(unsub_counts, oneclick):
     """Top de remitentes que más te llenan la bandeja."""
     if not cfg.UNSUB_REPORT or not unsub_counts:
@@ -127,6 +165,16 @@ def run(token, chat_id):
     total = 0
     important, suspicious = [], []
     unsub_counts, oneclick = Counter(), {}
+    purge_by_cat, purge_samples, heavy_items = Counter(), [], []
+    purge_total = purge_trashed = 0
+
+    def add_purge(res):
+        nonlocal purge_total, purge_trashed
+        for k, v in res["by_cat"].items():
+            purge_by_cat[k] += v
+        purge_samples.extend(res["samples"])
+        purge_total += res["total"]
+        purge_trashed += res["trashed"]
 
     def collect(acts):
         for (m, cat, _arch) in acts:
@@ -159,6 +207,10 @@ def run(token, chat_id):
                 total += len(acts)
                 collect(acts)
                 summary_lines.append(_acc_summary(cfg.GMAIL_ADDRESS, counts, len(acts)))
+                # la purga va después de organizar: cambia la carpeta seleccionada
+                add_purge(purge.run(g, "gmail"))
+                heavy_items.extend(dict(it, account=cfg.GMAIL_ADDRESS)
+                                   for it in purge.heavy(g))
             except Exception as e:
                 print(traceback.format_exc())
                 summary_lines.append(
@@ -186,6 +238,8 @@ def run(token, chat_id):
                 total += len(acts)
                 collect(acts)
                 summary_lines.append(_acc_summary(addr, counts, len(acts)))
+                add_purge(purge.run(o, "outlook"))
+                heavy_items.extend(dict(it, account=addr) for it in purge.heavy(o))
             except Exception as e:
                 print(traceback.format_exc())
                 summary_lines.append(
@@ -206,9 +260,12 @@ def run(token, chat_id):
                   f"Moví <b>{total}</b> correo(s) a sus carpetas.\n"
                   f"<i>Top:</i> {top}")
 
+    heavy_items.sort(key=lambda x: x.get("size", 0), reverse=True)
     blocks = ["\n\n".join(summary_lines)]
     for b in (_highlight("⭐ <b>Te dejé esto en la bandeja</b> (importante):", important),
               _highlight("🚨 <b>Ojo, parece phishing</b> (no abras links):", suspicious),
+              _purge_block(purge_by_cat, purge_samples, purge_total, purge_trashed),
+              _heavy_block(heavy_items),
               _unsub_block(unsub_counts, oneclick)):
         if b:
             blocks.append(b)

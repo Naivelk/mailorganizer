@@ -11,12 +11,26 @@ Así entras al día siguiente y tienes la bandeja ordenada.
 ## ¿Cómo funciona?
 
 1. Lee los correos recientes del inbox de cada cuenta.
-2. **Capa 1 (reglas):** clasifica lo obvio por remitente/asunto (redes, promos, bancos…).
-3. **Capa 2 (IA):** los dudosos se los pasa a Groq, que decide la categoría leyendo el contenido.
-4. Cada correo se **etiqueta/mueve** a su carpeta. Lo marcado `Importante` se queda en el inbox; el resto se archiva.
-5. Te llega un **resumen por Telegram** con cuántos correos movió y a dónde.
+2. **Capa 0 (blindaje):** códigos OTP, alertas de seguridad y avisos legales → `Importante`, y **nunca se archivan**. Si el bot te esconde un código, te quedas sin entrar a una cuenta.
+3. **Capa 1 (reglas):** clasifica lo obvio por remitente/asunto (empleos, bancos, redes, promos…).
+4. **Capa 2 (IA):** los dudosos se los pasa a Groq **por lotes**, que decide leyendo el contenido.
+5. Cada correo se **etiqueta/mueve** a su carpeta. `Importante` se queda en el inbox; el resto se archiva.
+6. **Purga:** lo viejo que ya no sirve se manda a la **papelera** (ver abajo).
+7. Te llega un **resumen por Telegram**: qué movió, qué es importante, qué parece phishing, qué ocupa espacio y de quién te conviene desuscribirte.
 
-Las categorías, reglas y horario se ajustan en [`config.py`](config.py).
+Las categorías, reglas, purga y horario se ajustan en [`config.py`](config.py).
+
+## 🗑️ Sobre la purga (leer antes de activarla)
+
+- **Nunca borra permanentemente.** Manda a la papelera, que Gmail y Outlook vacían solos a los ~30 días: el espacio se libera igual, pero te queda un mes para rescatar lo que se haya ido por error.
+- **Arranca en simulacro** (`PURGE_DRY_RUN = True`): te reporta qué *borraría* sin tocar nada. Pon `False` cuando el reporte te convenza.
+- **Jamás toca:** `Importante`, `Facturas y pagos` (respaldo legal), `Empleos`, `Clientes`, `Trabajo Intercoast`, nada blindado, ni nada que marcaste con ⭐.
+- Política por defecto: `Newsletters y Promos` y `Sospechoso` a los 90 días (leídos o no); `Redes sociales` y `Personal` solo si ya los leíste (90 días) o si son muy viejos (180).
+- **El espacio real está en los adjuntos**, no en la cantidad. Por eso el resumen incluye los correos de +5 MB: bórralos tú a mano y liberas más que con miles de boletines.
+
+## 📬 Desuscripción
+
+El bot **detecta** de quién puedes darte de baja (cabecera `List-Unsubscribe`) y te lo reporta — pero **no se desuscribe solo**. Y de lo marcado `Sospechoso` **nunca** toca un link: darle "unsubscribe" a un phishing le confirma al atacante que tu correo existe.
 
 ---
 
@@ -88,10 +102,12 @@ Usa el **mismo** `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` de tus otros bots.
 
 ## ⚙️ Ajustes rápidos ([`config.py`](config.py))
 - **Categorías:** edita `CATEGORIES` (usa nombres planos y sin tildes).
-- **Reglas:** agrega remitentes/palabras a `RULES` para no gastar IA en lo obvio.
+- **Reglas:** agrega remitentes/palabras a `RULES` para no gastar IA en lo obvio. Se evalúan **en orden**: lo específico va antes que lo genérico.
+- **Blindaje:** `PROTECT_SUBJECT` — lo que nunca se archiva. Se busca por **palabra**, no subcadena (si no, "pin" cazaría con "sho*pin*g").
+- **Purga:** `PURGE_DRY_RUN`, `PURGE_POLICIES`, `PURGE_NEVER`.
 - **Horario:** cambia el `cron` en [`.github/workflows/organize.yml`](.github/workflows/organize.yml).
   `'0 10 * * *'` = 5:00 AM Colombia. Para 2 veces al día: `'0 10,22 * * *'`.
-- **Cuánto revisa:** `MAX_FETCH` (correos por corrida). Súbelo para limpiar backlog más rápido.
+- **Vaciar el backlog:** no edites `MAX_FETCH`. Lanza el workflow a mano y pon el número en el campo **"Correos por cuenta"** (ej. `300`), las veces que haga falta.
 
 ## 🛟 Notas
 - **No borra nada.** En Gmail "archivar" solo quita la etiqueta *Inbox*; el correo queda bajo su etiqueta y en *Todos*. En Outlook mueve a carpeta. Todo es reversible.

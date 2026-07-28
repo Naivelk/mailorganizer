@@ -7,6 +7,7 @@
 #    - Resto                     -> mueve el correo a su carpeta (sale del inbox)
 #  Nunca borra.
 # ============================================================================
+from datetime import datetime
 from urllib.parse import quote
 
 import requests
@@ -14,6 +15,13 @@ import requests
 TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 GRAPH = "https://graph.microsoft.com/v1.0"
 SCOPE = "Mail.ReadWrite offline_access"
+
+
+def _parse_iso(s):
+    try:
+        return datetime.strptime((s or "")[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
 
 
 class OutlookClient:
@@ -127,6 +135,74 @@ class OutlookClient:
                                headers=self._headers(),
                                json={"categories": [category]}, timeout=30)
             r.raise_for_status()
+
+    # --- Purga / reportes --------------------------------------------------
+    def sweep(self, folder, cutoff_iso, limit, keep_flagged=True):
+        """Correos de 'folder' anteriores a 'cutoff_iso', sin bandera."""
+        fid = self._folders.get(folder)
+        if not fid:
+            return []
+        filt = quote(f"receivedDateTime lt {cutoff_iso}", safe="")
+        sel = "id,subject,from,receivedDateTime,isRead,flag"
+        url = f"{GRAPH}/me/mailFolders/{fid}/messages?$top=50&$filter={filt}&$select={sel}"
+        out = []
+        while url and len(out) < limit:
+            r = requests.get(url, headers=self._headers(), timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            for m in data.get("value", []):
+                flag = ((m.get("flag") or {}).get("flagStatus") or "").lower()
+                if keep_flagged and flag == "flagged":
+                    continue
+                frm = ((m.get("from") or {}).get("emailAddress")) or {}
+                out.append({
+                    "id": m["id"],
+                    "subject": m.get("subject") or "",
+                    "from_email": (frm.get("address") or "").lower(),
+                    "read": bool(m.get("isRead")),
+                    "date": _parse_iso(m.get("receivedDateTime")),
+                })
+                if len(out) >= limit:
+                    break
+            url = data.get("@odata.nextLink")
+        return out
+
+    def trash(self, ids):
+        """Mueve a Elementos eliminados (recuperable). No borra permanentemente."""
+        n = 0
+        for mid in ids:
+            try:
+                r = requests.post(f"{GRAPH}/me/messages/{quote(mid, safe='')}/move",
+                                  headers=self._headers(),
+                                  json={"destinationId": "deleteditems"}, timeout=30)
+                r.raise_for_status()
+                n += 1
+            except Exception as e:
+                print(f"[outlook] no pude mover a papelera: {e}")
+        return n
+
+    def heavy(self, min_bytes, limit):
+        """Los correos más pesados (lo que de verdad ocupa tu almacenamiento)."""
+        filt = quote("hasAttachments eq true", safe="")
+        sel = "id,subject,from,size"
+        url = f"{GRAPH}/me/messages?$top=100&$filter={filt}&$select={sel}"
+        out, pages = [], 0
+        while url and pages < 8:      # tope: no barremos el buzón entero
+            r = requests.get(url, headers=self._headers(), timeout=30)
+            if r.status_code >= 400:
+                break
+            data = r.json()
+            for m in data.get("value", []):
+                if (m.get("size") or 0) < min_bytes:
+                    continue
+                frm = ((m.get("from") or {}).get("emailAddress")) or {}
+                out.append({"size": m.get("size") or 0,
+                            "subject": m.get("subject") or "",
+                            "from_email": (frm.get("address") or "").lower()})
+            url = data.get("@odata.nextLink")
+            pages += 1
+        out.sort(key=lambda x: x["size"], reverse=True)
+        return out[:limit]
 
     def commit(self):
         pass   # Graph aplica cada acción al instante
