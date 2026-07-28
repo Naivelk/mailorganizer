@@ -53,7 +53,11 @@ PROTECT_SUBJECT = [
     # "your code" salía sobrando: cazaba con promos de claves de juegos (G2A)
     "verification code", "security code", "access code", "login code",
     "verification", "verificacion", "verificación", "2fa", "two-factor",
-    "inicio de sesion", "inicio de sesión", "sign-in", "sign in", "login",
+    # Meta escribe "¿Acabas de INICIAR sesión...?" y con solo "inicio de
+    # sesion" no cazaba: la alerta real terminó marcada como phishing.
+    "inicio de sesion", "inicio de sesión", "iniciar sesion", "iniciar sesión",
+    "iniciaste sesion", "iniciaste sesión", "sign-in", "sign in", "login",
+    "dispositivo nuevo", "nuevo dispositivo", "new device", "dispositivo desconocido",
     "was this you", "restablecer", "reset password", "recuperacion", "recuperación",
     # seguridad
     "alerta de seguridad", "security alert", "actividad sospechosa",
@@ -172,9 +176,12 @@ PURGE_DAYS = 70
 #  Por categoría. require_read=False -> lo tumba lo hayas leído o no.
 #  (Si algún día quieres ser más suave con una, ponle require_read=True y
 #   un "days_unread" mayor: los no leídos esperarían ese tiempo extra.)
+#  "Sospechoso" YA NO se purga: la IA metió ahí una alerta real de Meta
+#  ("¿iniciaste sesión en un dispositivo nuevo?") y marketing legítimo de
+#  RappiPay y Temu. Se quedan en su carpeta para que los revises tú; el
+#  costo de borrar un aviso de seguridad de verdad es demasiado alto.
 PURGE_POLICIES = {
     "Newsletters y Promos": {"days": PURGE_DAYS, "require_read": False},
-    "Sospechoso":           {"days": PURGE_DAYS, "require_read": False},
     "Redes sociales":       {"days": PURGE_DAYS, "require_read": False},
     "Personal":             {"days": PURGE_DAYS, "require_read": False},
 }
