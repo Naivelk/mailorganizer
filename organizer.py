@@ -30,7 +30,14 @@ _CAT_EMOJI = {
     "Newsletters y Promos": "📰",
     "Redes sociales": "📱",
     "Personal": "👤",
+    "Sin clasificar": "❓",
 }
+
+
+def _short(addr):
+    """naivelk@gmail.com -> naivelk@gmail (para no confundir tus dos cuentas)."""
+    user, _, dom = (addr or "").partition("@")
+    return f"{user}@{dom.split('.')[0]}" if dom else user
 
 
 def max_fetch():
@@ -138,7 +145,7 @@ def _heavy_block(items):
     for it in items[:cfg.HEAVY_TOP]:
         mb = it.get("size", 0) / (1024 * 1024)
         subj = (it.get("subject") or "(sin asunto)")[:55]
-        acc = (it.get("account") or "").split("@")[0]
+        acc = _short(it.get("account"))
         lines.append(f"   • <b>{mb:.1f} MB</b> — {notify.esc(subj)} "
                      f"<i>({notify.esc(acc)})</i>")
     lines.append("<i>Bórralos tú a mano: ahí está el espacio de verdad.</i>")

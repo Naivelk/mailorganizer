@@ -6,10 +6,30 @@
 #  por defecto (nunca se pierde ni se borra nada).
 # ============================================================================
 import json
+import time
 
 import requests
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+
+def _post_retry(payload, headers, timeout, tries=5):
+    """Groq (plan gratis) tira 429 seguido. Reintenta respetando su Retry-After:
+    sin esto, los lotes rechazados caían sin clasificar."""
+    r, wait = None, 5.0
+    for n in range(1, tries + 1):
+        r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=timeout)
+        if r.status_code != 429:
+            return r
+        try:
+            wait = float(r.headers.get("retry-after") or wait)
+        except ValueError:
+            pass
+        wait = min(max(wait, 2.0), 60.0)
+        print(f"[ai] 429: espero {wait:.0f}s (intento {n}/{tries})")
+        time.sleep(wait)
+        wait *= 2
+    return r
 
 
 def classify_with_ai(emails, categories, model, api_key, timeout=60):
@@ -55,18 +75,17 @@ def classify_with_ai(emails, categories, model, api_key, timeout=60):
     )
 
     try:
-        r = requests.post(
-            GROQ_URL,
-            headers={"Authorization": f"Bearer {api_key}",
-                     "Content-Type": "application/json"},
-            json={
+        r = _post_retry(
+            {
                 "model": model,
                 "messages": [{"role": "system", "content": system},
                              {"role": "user", "content": user}],
                 "temperature": 0.1,
                 "response_format": {"type": "json_object"},
             },
-            timeout=timeout,
+            {"Authorization": f"Bearer {api_key}",
+             "Content-Type": "application/json"},
+            timeout,
         )
         r.raise_for_status()
         data = json.loads(r.json()["choices"][0]["message"]["content"])

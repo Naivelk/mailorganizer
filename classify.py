@@ -5,6 +5,7 @@
 #    Capa 2: IA Groq por lotes (los dudosos)
 # ============================================================================
 import re
+import time
 
 import ai_classify
 import config as cfg
@@ -50,10 +51,13 @@ def classify(messages, get_body, api_key):
 
     # --- Capa 2: la IA procesa POR LOTES (no trunca: si hay 300 dudosos,
     #     hace 12 llamadas de 25 en vez de clasificar solo los primeros) ----
-    if cfg.AI_ENABLED and api_key and undecided:
+    ai_ran = cfg.AI_ENABLED and api_key and undecided
+    if ai_ran:
         size = max(1, cfg.AI_BATCH_SIZE)
         batches = [undecided[i:i + size] for i in range(0, len(undecided), size)]
         for n, batch in enumerate(batches[:cfg.AI_MAX_BATCHES], 1):
+            if n > 1 and cfg.AI_PAUSE:
+                time.sleep(cfg.AI_PAUSE)   # no atropellamos el límite de Groq
             payload = []
             for idx, m in enumerate(batch):
                 snippet = m.get("snippet")
@@ -71,8 +75,15 @@ def classify(messages, get_body, api_key):
                 if idx in result:
                     m["category"], m["by"] = result[idx], "IA"
 
-    # lo que la IA no alcanzó a ver (tope de lotes o IA off) -> por defecto
+    # Lo que la IA no resolvió. Si la IA sí corrió pero este correo se quedó
+    # afuera (429, error, tope de lotes), va a "Sin clasificar": nunca se
+    # purga, porque nadie lo miró. Si la IA está apagada, va al default.
+    fallback = cfg.UNSORTED_CATEGORY if ai_ran else cfg.DEFAULT_CATEGORY
+    pending = 0
     for m in undecided:
         if "category" not in m:
-            m["category"], m["by"] = cfg.DEFAULT_CATEGORY, "default"
+            m["category"], m["by"] = fallback, "sin-ia"
+            pending += 1
+    if pending:
+        print(f"[ai] {pending} correo(s) sin clasificar -> '{fallback}'")
     return messages

@@ -31,6 +31,10 @@ CATEGORIES = [
     "Personal",
 ]
 DEFAULT_CATEGORY    = "Personal"        # si ni las reglas ni la IA deciden
+#  Cuando la IA NO pudo opinar (rate limit de Groq, error de red), el correo
+#  cae aquí en vez de en Personal. Es a propósito: "Sin clasificar" está en
+#  PURGE_NEVER, así que jamás se borra algo que nadie llegó a mirar.
+UNSORTED_CATEGORY   = "Sin clasificar"
 KEEP_IN_INBOX       = ["Importante"]    # estas NO se archivan (quedan visibles)
 ARCHIVE_AFTER_LABEL = True              # el resto sale del inbox hacia su carpeta
 
@@ -42,7 +46,8 @@ PROTECT_CATEGORY = "Importante"
 PROTECT_SUBJECT = [
     # códigos / acceso   (ojo: "code" a secas cazaría con "promo code")
     "codigo", "código", "otp", "pin", "one-time", "un solo uso",
-    "verification code", "security code", "access code", "your code",
+    # "your code" salía sobrando: cazaba con promos de claves de juegos (G2A)
+    "verification code", "security code", "access code", "login code",
     "verification", "verificacion", "verificación", "2fa", "two-factor",
     "inicio de sesion", "inicio de sesión", "sign-in", "sign in", "login",
     "was this you", "restablecer", "reset password", "recuperacion", "recuperación",
@@ -105,9 +110,13 @@ RULES = [
 # --- Capa 2: IA (Groq — gratis, reusa tu GROQ_API_KEY) ---------------------
 AI_ENABLED      = True
 GROQ_MODEL      = "llama-3.3-70b-versatile"   # si Groq lo deprecia, cámbialo aquí
-AI_BATCH_SIZE   = 25     # correos por llamada a la IA (procesa por lotes)
-AI_MAX_BATCHES  = 40     # tope de llamadas por corrida (freno de seguridad)
-AI_BODY_CHARS   = 600    # cuánto del cuerpo leer para clasificar
+#  Groq (plan gratis) limita por TOKENS por minuto, no solo por peticiones:
+#  lotes de 25 con 600 chars de cuerpo lo reventaban y la mitad de los lotes
+#  volvía 429. Lotes más chicos + menos texto + pausa = pasa todo.
+AI_BATCH_SIZE   = 15     # correos por llamada a la IA (procesa por lotes)
+AI_MAX_BATCHES  = 60     # tope de llamadas por corrida (freno de seguridad)
+AI_BODY_CHARS   = 350    # cuánto del cuerpo leer para clasificar
+AI_PAUSE        = 2      # segundos entre lotes, para no atropellar la API
 
 # --- Comportamiento --------------------------------------------------------
 MAX_FETCH   = 15         # correos recientes del inbox a revisar por cuenta/corrida
@@ -142,7 +151,7 @@ PURGE_POLICIES = {
 
 #  Estas NUNCA se tocan, pase lo que pase (respaldo legal, trabajo, empleo).
 PURGE_NEVER = ["Importante", "Facturas y pagos", "Empleos", "Clientes",
-               "Trabajo Intercoast"]
+               "Trabajo Intercoast", UNSORTED_CATEGORY]
 PURGE_KEEP_FLAGGED = True   # jamás tumba lo que marcaste con estrella/bandera
 
 # --- Reporte de correos pesados (lo que de verdad libera GB) ---------------
