@@ -145,9 +145,11 @@ AI_BODY_CHARS   = 350    # cuánto del cuerpo leer para clasificar
 AI_PAUSE        = 2      # segundos entre lotes, para no atropellar la API
 
 # --- Comportamiento --------------------------------------------------------
-MAX_FETCH   = 15         # correos recientes del inbox a revisar por cuenta/corrida
-                         # (para vaciar el backlog no edites esto: usa el campo
-                         #  "correos por cuenta" al lanzar el workflow a mano)
+MAX_FETCH   = 60         # correos por cuenta en la corrida AUTOMÁTICA diaria.
+                         # 60 cubre de sobra lo que entra en un día y aún le
+                         # come al backlog. (Estaba en 15 para la 1ª prueba.)
+                         # Para vaciar el backlog no edites esto: usa el campo
+                         # "correos por cuenta" al lanzar el workflow a mano.
 MAX_SEEN    = 8000       # ids recordados por cuenta para no reprocesar
 ONLY_UNREAD = False      # True = solo no leídos; False = organiza todo el inbox
 MARK_SEEN   = False      # False = NO marca como leído al organizar (no te oculta nada)
