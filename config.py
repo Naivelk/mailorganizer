@@ -141,7 +141,9 @@ GROQ_MODEL      = "llama-3.1-8b-instant"
 #  volvía 429. Lotes más chicos + menos texto + pausa = pasa todo.
 AI_BATCH_SIZE   = 15     # correos por llamada a la IA (procesa por lotes)
 AI_MAX_BATCHES  = 60     # tope de llamadas por corrida (freno de seguridad)
-AI_BODY_CHARS   = 350    # cuánto del cuerpo leer para clasificar
+AI_BODY_CHARS   = 200    # cuánto del cuerpo leer para clasificar. Menos texto
+                         # = menos tokens = menos esperas por 429. El remitente
+                         # y el asunto ya deciden la mayoría de los casos.
 AI_PAUSE        = 2      # segundos entre lotes, para no atropellar la API
 
 # --- Comportamiento --------------------------------------------------------

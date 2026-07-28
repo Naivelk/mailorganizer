@@ -183,9 +183,12 @@ class OutlookClient:
 
     def heavy(self, min_bytes, limit):
         """Los correos más pesados (lo que de verdad ocupa tu almacenamiento)."""
+        # Las cuentas personales corren sobre el API viejo de Outlook, donde
+        # el mensaje NO tiene propiedad 'size' (Graph respondía 400). Pedimos
+        # el tamaño de los adjuntos y lo sumamos, que es lo que pesa igual.
         filt = quote("hasAttachments eq true", safe="")
-        sel = "id,subject,from,size"
-        url = f"{GRAPH}/me/messages?$top=100&$filter={filt}&$select={sel}"
+        url = (f"{GRAPH}/me/messages?$top=25&$filter={filt}"
+               "&$select=id,subject,from&$expand=attachments($select=size)")
         out, pages, seen = [], 0, 0
         while url and pages < 12:     # tope: no barremos el buzón entero
             r = requests.get(url, headers=self._headers(), timeout=30)
@@ -195,10 +198,11 @@ class OutlookClient:
             data = r.json()
             for m in data.get("value", []):
                 seen += 1
-                if (m.get("size") or 0) < min_bytes:
+                size = sum(a.get("size") or 0 for a in (m.get("attachments") or []))
+                if size < min_bytes:
                     continue
                 frm = ((m.get("from") or {}).get("emailAddress")) or {}
-                out.append({"size": m.get("size") or 0,
+                out.append({"size": size,
                             "subject": m.get("subject") or "",
                             "from_email": (frm.get("address") or "").lower()})
             url = data.get("@odata.nextLink")

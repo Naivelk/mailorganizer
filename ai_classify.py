@@ -41,8 +41,8 @@ def classify_with_ai(emails, categories, model, api_key, timeout=60):
     listing = [{
         "i": e["i"],
         "from": e.get("from_email", ""),
-        "subject": (e.get("subject", "") or "")[:160],
-        "preview": (e.get("snippet", "") or "")[:400],
+        "subject": (e.get("subject", "") or "")[:120],
+        "preview": (e.get("snippet", "") or "")[:200],
     } for e in emails]
 
     cats = ", ".join(categories)
