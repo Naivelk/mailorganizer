@@ -25,7 +25,7 @@ Las categorías, reglas, purga y horario se ajustan en [`config.py`](config.py).
 - **Nunca borra permanentemente.** Manda a la papelera, que Gmail y Outlook vacían solos a los ~30 días: el espacio se libera igual, pero te queda un mes para rescatar lo que se haya ido por error.
 - **Arranca en simulacro** (`PURGE_DRY_RUN = True`): te reporta qué *borraría* sin tocar nada. Pon `False` cuando el reporte te convenza.
 - **Jamás toca:** `Importante`, `Facturas y pagos` (respaldo legal), `Empleos`, `Clientes`, `Trabajo Intercoast`, nada blindado, ni nada que marcaste con ⭐.
-- Política por defecto: `Newsletters y Promos` y `Sospechoso` a los 90 días (leídos o no); `Redes sociales` y `Personal` solo si ya los leíste (90 días) o si son muy viejos (180).
+- Política por defecto: **70 días** para `Newsletters y Promos`, `Sospechoso`, `Redes sociales` y `Personal` — los hayas leído o no. Se cambia con un solo número: `PURGE_DAYS`.
 - **El espacio real está en los adjuntos**, no en la cantidad. Por eso el resumen incluye los correos de +5 MB: bórralos tú a mano y liberas más que con miles de boletines.
 
 ## 📬 Desuscripción

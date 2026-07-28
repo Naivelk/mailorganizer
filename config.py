@@ -126,13 +126,18 @@ PURGE_DRY_RUN     = True    # ...pero en SIMULACRO: solo reporta, no mueve nada.
                             # Pon False cuando el reporte te convenza.
 PURGE_MAX_PER_RUN = 300     # tope por cuenta y corrida (freno de seguridad)
 
-#  Por categoría: días mínimos y si exige estar leído.
-#  days_unread = si NO lo has abierto, espera más tiempo antes de tumbarlo.
+#  Antigüedad a partir de la cual un correo se va a la papelera.
+#  Cambia SOLO este número para hacerlo más o menos agresivo.
+PURGE_DAYS = 70
+
+#  Por categoría. require_read=False -> lo tumba lo hayas leído o no.
+#  (Si algún día quieres ser más suave con una, ponle require_read=True y
+#   un "days_unread" mayor: los no leídos esperarían ese tiempo extra.)
 PURGE_POLICIES = {
-    "Newsletters y Promos": {"days": 90, "require_read": False},
-    "Sospechoso":           {"days": 90, "require_read": False},
-    "Redes sociales":       {"days": 90, "require_read": True, "days_unread": 180},
-    "Personal":             {"days": 90, "require_read": True, "days_unread": 180},
+    "Newsletters y Promos": {"days": PURGE_DAYS, "require_read": False},
+    "Sospechoso":           {"days": PURGE_DAYS, "require_read": False},
+    "Redes sociales":       {"days": PURGE_DAYS, "require_read": False},
+    "Personal":             {"days": PURGE_DAYS, "require_read": False},
 }
 
 #  Estas NUNCA se tocan, pase lo que pase (respaldo legal, trabajo, empleo).
