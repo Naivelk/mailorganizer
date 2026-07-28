@@ -82,7 +82,11 @@ RULES = [
      "subject_contains": ["vacante", "oferta laboral", "hoja de vida",
                           "postulacion", "postulación", "entrevista",
                           "job alert", "new jobs", "empleos para ti",
-                          "buscando talento", "aplica ahora"]},
+                          "buscando talento", "aplica ahora",
+                          # en Colombia "convocatoria" suele ser oferta de
+                          # empleo o proceso público: iba camino a la papelera
+                          "convocatoria", "seleccion de personal",
+                          "selección de personal", "proceso de seleccion"]},
 
     {"category": "Facturas y pagos",
      "from_contains": ["paypal", "stripe", "bancolombia", "nequi", "daviplata",

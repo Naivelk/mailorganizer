@@ -186,13 +186,15 @@ class OutlookClient:
         filt = quote("hasAttachments eq true", safe="")
         sel = "id,subject,from,size"
         url = f"{GRAPH}/me/messages?$top=100&$filter={filt}&$select={sel}"
-        out, pages = [], 0
-        while url and pages < 8:      # tope: no barremos el buzón entero
+        out, pages, seen = [], 0, 0
+        while url and pages < 12:     # tope: no barremos el buzón entero
             r = requests.get(url, headers=self._headers(), timeout=30)
             if r.status_code >= 400:
+                print(f"[pesados] Graph {r.status_code}: {r.text[:200]}")
                 break
             data = r.json()
             for m in data.get("value", []):
+                seen += 1
                 if (m.get("size") or 0) < min_bytes:
                     continue
                 frm = ((m.get("from") or {}).get("emailAddress")) or {}
@@ -201,6 +203,8 @@ class OutlookClient:
                             "from_email": (frm.get("address") or "").lower()})
             url = data.get("@odata.nextLink")
             pages += 1
+        print(f"[pesados] {self.address}: {seen} con adjunto revisados, "
+              f"{len(out)} superan el mínimo")
         out.sort(key=lambda x: x["size"], reverse=True)
         return out[:limit]
 
