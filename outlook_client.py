@@ -38,7 +38,21 @@ class OutlookClient:
         if r.status_code != 200:
             raise RuntimeError(f"token {r.status_code}: {r.text[:200]}")
         self.access_token = r.json()["access_token"]
+        self._load_identity()
         self._load_folders()
+
+    def _load_identity(self):
+        """Lee la dirección REAL del token (por si los secrets quedaron cruzados)."""
+        try:
+            r = requests.get(f"{GRAPH}/me?$select=mail,userPrincipalName",
+                             headers=self._headers(), timeout=30)
+            if r.status_code == 200:
+                d = r.json()
+                addr = d.get("mail") or d.get("userPrincipalName")
+                if addr:
+                    self.address = addr.lower()
+        except Exception as e:
+            print(f"[outlook] no pude leer /me: {e}")
 
     def _load_folders(self):
         url = f"{GRAPH}/me/mailFolders?$top=200&$select=id,displayName"

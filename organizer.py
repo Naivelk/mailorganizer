@@ -139,12 +139,13 @@ def run(token, chat_id):
             o = OutlookClient(acc["address"], rt, client_id)
             try:
                 o.connect()
+                addr = o.address   # la real del token, no la de config
                 acts, seen, counts = process_account(
-                    acc["name"], o, None, state.get(acc["address"], []))
-                state[acc["address"]] = seen
+                    acc["name"], o, None, state.get(addr, []))
+                state[addr] = seen
                 all_counts += counts
                 total += len(acts)
-                summary_lines.append(_acc_summary(acc["address"], counts, len(acts)))
+                summary_lines.append(_acc_summary(addr, counts, len(acts)))
             except Exception as e:
                 print(traceback.format_exc())
                 summary_lines.append(
