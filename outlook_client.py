@@ -66,21 +66,27 @@ class OutlookClient:
 
     def fetch_inbox(self, limit, only_unread=False):
         # nota: con only_unread no pedimos $orderby (Graph lo rechaza combinado)
-        if only_unread:
-            url = (f"{GRAPH}/me/mailFolders/inbox/messages?$top=50"
-                   "&$filter=isRead eq false"
-                   "&$select=id,subject,from,receivedDateTime,bodyPreview,internetMessageId")
-        else:
-            url = (f"{GRAPH}/me/mailFolders/inbox/messages?$top=50"
-                   "&$orderby=receivedDateTime desc"
-                   "&$select=id,subject,from,receivedDateTime,bodyPreview,internetMessageId")
-        out = []
+        base = f"{GRAPH}/me/mailFolders/inbox/messages?$top=50"
+        base += ("&$filter=isRead eq false" if only_unread
+                 else "&$orderby=receivedDateTime desc")
+        sel = "id,subject,from,receivedDateTime,bodyPreview,internetMessageId"
+        url = f"{base}&$select={sel},internetMessageHeaders"
+        out, with_headers = [], True
         while url and len(out) < limit:
             r = requests.get(url, headers=self._headers(), timeout=30)
+            if r.status_code >= 400 and with_headers and not out:
+                # algunos buzones no dejan pedir las cabeceras en lote: reintenta
+                # sin ellas. Solo antes de la 1ª página, para no repetir correos.
+                print("[outlook] sin internetMessageHeaders; reintento simple")
+                with_headers = False
+                url = f"{base}&$select={sel}"
+                continue
             r.raise_for_status()
             data = r.json()
             for m in data.get("value", []):
                 frm = ((m.get("from") or {}).get("emailAddress")) or {}
+                hdrs = {h.get("name", "").lower(): h.get("value", "")
+                        for h in (m.get("internetMessageHeaders") or [])}
                 out.append({
                     "id": m["id"],
                     "from_email": (frm.get("address") or "").lower(),
@@ -88,6 +94,9 @@ class OutlookClient:
                     "subject": m.get("subject") or "",
                     "snippet": m.get("bodyPreview") or "",
                     "message_id": m.get("internetMessageId") or m["id"],
+                    "unsub": hdrs.get("list-unsubscribe", "").strip(),
+                    "unsub_oneclick": "one-click" in
+                                      hdrs.get("list-unsubscribe-post", "").lower(),
                 })
                 if len(out) >= limit:
                     break

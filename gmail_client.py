@@ -74,7 +74,8 @@ class GmailClient:
         for uid in uids:
             typ, d = self.conn.uid(
                 "FETCH", uid,
-                "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID)])")
+                "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE MESSAGE-ID "
+                "LIST-UNSUBSCRIBE LIST-UNSUBSCRIBE-POST)])")
             if typ != "OK" or not d or not d[0]:
                 continue
             hdr = email.message_from_bytes(d[0][1])
@@ -86,6 +87,9 @@ class GmailClient:
                 "subject": _decode(hdr.get("Subject", "")),
                 "date": _decode(hdr.get("Date", "")),
                 "message_id": (hdr.get("Message-ID", "") or "").strip(),
+                "unsub": (hdr.get("List-Unsubscribe", "") or "").strip(),
+                "unsub_oneclick": "one-click" in
+                                  (hdr.get("List-Unsubscribe-Post", "") or "").lower(),
             })
         return msgs
 

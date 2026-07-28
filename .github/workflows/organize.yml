@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 10 * * *'    # 10:00 UTC = 5:00 AM Colombia (listo cuando despiertas)
   workflow_dispatch:          # botón para correrlo manualmente
+    inputs:
+      max_fetch:
+        description: 'Correos por cuenta (vacío = usar config). Sube esto para vaciar el backlog, ej: 300'
+        required: false
+        default: ''
 
 permissions:
   contents: write             # para guardar state.json (no reprocesar)
@@ -37,6 +42,7 @@ jobs:
           MS_CLIENT_ID:       ${{ secrets.MS_CLIENT_ID }}
           MS_REFRESH_TOKEN_1: ${{ secrets.MS_REFRESH_TOKEN_1 }}
           MS_REFRESH_TOKEN_2: ${{ secrets.MS_REFRESH_TOKEN_2 }}
+          MAX_FETCH_OVERRIDE: ${{ inputs.max_fetch }}
         run: python organizer.py
 
       - name: Guardar estado
