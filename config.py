@@ -35,7 +35,11 @@ DEFAULT_CATEGORY    = "Personal"        # si ni las reglas ni la IA deciden
 #  cae aquí en vez de en Personal. Es a propósito: "Sin clasificar" está en
 #  PURGE_NEVER, así que jamás se borra algo que nadie llegó a mirar.
 UNSORTED_CATEGORY   = "Sin clasificar"
-KEEP_IN_INBOX       = ["Importante"]    # estas NO se archivan (quedan visibles)
+#  Vacío a propósito: en la bandeja SOLO se quedan los blindados de la Capa 0
+#  (códigos, alertas de seguridad, avisos legales). Lo que la IA juzgue
+#  "Importante" va a su carpeta: si no, se acumulaban ~70 y la bandeja nunca
+#  quedaba limpia. Para volver atrás, pon ["Importante"].
+KEEP_IN_INBOX       = []
 ARCHIVE_AFTER_LABEL = True              # el resto sale del inbox hacia su carpeta
 
 # --- Capa 0: BLINDAJE  (se evalúa ANTES que todo) --------------------------
@@ -105,7 +109,13 @@ RULES = [
     {"category": "Newsletters y Promos",
      # Los de más volumen van explícitos para que ni lleguen a la IA
      # (salieron de tu propio reporte de desuscripción).
-     "from_contains": ["newsletter", "noreply", "no-reply", "no_reply", "mailchimp",
+     # PRA Group: cobro de cartera real (deuda de la mamá de Kevin) pero
+     # escriben a diario con ofertas de descuento. Regla fija para que no
+     # oscilen entre Importante y Sospechoso como venía pasando.
+     # OJO: la Capa 0 corre ANTES que esto, así que si algún día mandan un
+     # embargo, demanda o citación, eso igual salta a Importante.
+     "from_contains": ["pragroup", "pra-group", "pracolombia",
+                       "newsletter", "noreply", "no-reply", "no_reply", "mailchimp",
                        "sendgrid", "substack", "medium.com", "marketing", "promo",
                        # juegos / entretenimiento
                        "e.ea.com", "epicgames", "nba2k", "ubisoft", "playstation",
@@ -115,7 +125,8 @@ RULES = [
      "subject_contains": ["oferta", "descuento", "promo", "sale", "% off", "cupon",
                           "cupón", "boletin", "boletín", "newsletter",
                           "unsubscribe", "black friday", "ultimas horas",
-                          "últimas horas"]},
+                          "últimas horas",
+                          "condonacion", "condonación"]},   # ofertas de cartera
 ]
 
 # --- Capa 2: IA (Groq — gratis, reusa tu GROQ_API_KEY) ---------------------
@@ -146,8 +157,8 @@ MARK_SEEN   = False      # False = NO marca como leído al organizar (no te ocul
 #  vacían solos a los 30 días. El espacio se libera igual, pero te queda un mes
 #  para rescatar cualquier cosa que se haya ido por error.
 PURGE_ENABLED     = True    # el barrido corre...
-PURGE_DRY_RUN     = True    # ...pero en SIMULACRO: solo reporta, no mueve nada.
-                            # Pon False cuando el reporte te convenza.
+PURGE_DRY_RUN     = False   # ...y ahora SÍ manda a la papelera. Pon True para
+                            # volver al simulacro (reporta sin tocar nada).
 PURGE_MAX_PER_RUN = 300     # tope por cuenta y corrida (freno de seguridad)
 
 #  Antigüedad a partir de la cual un correo se va a la papelera.
