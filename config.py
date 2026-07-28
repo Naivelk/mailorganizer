@@ -68,7 +68,9 @@ AI_MAX_PER_RUN = 40      # tope de correos que pasan a la IA por corrida
 AI_BODY_CHARS  = 600     # cuánto del cuerpo leer para clasificar
 
 # --- Comportamiento --------------------------------------------------------
-MAX_FETCH   = 80         # correos recientes del inbox a revisar por cuenta/corrida
+MAX_FETCH   = 15         # correos recientes del inbox a revisar por cuenta/corrida
+                         # (bajo a propósito para la 1ª prueba; súbelo a 80 cuando
+                         #  ya confíes en cómo clasifica)
 MAX_SEEN    = 5000       # ids recordados por cuenta para no reprocesar
 ONLY_UNREAD = False      # True = solo no leídos; False = organiza todo el inbox
 MARK_SEEN   = False      # False = NO marca como leído al organizar (no te oculta nada)
