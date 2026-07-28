@@ -99,8 +99,15 @@ RULES = [
      "subject_contains": []},
 
     {"category": "Newsletters y Promos",
+     # Los de más volumen van explícitos para que ni lleguen a la IA
+     # (salieron de tu propio reporte de desuscripción).
      "from_contains": ["newsletter", "noreply", "no-reply", "no_reply", "mailchimp",
-                       "sendgrid", "substack", "medium.com", "marketing", "promo"],
+                       "sendgrid", "substack", "medium.com", "marketing", "promo",
+                       # juegos / entretenimiento
+                       "e.ea.com", "epicgames", "nba2k", "ubisoft", "playstation",
+                       "steampowered", "riotgames", "xbox", "nintendo", "g2a",
+                       "realmadrid", "spotify", "netflix", "disney", "primevideo",
+                       "twitch.tv", "rockstargames", "battle.net", "gog.com"],
      "subject_contains": ["oferta", "descuento", "promo", "sale", "% off", "cupon",
                           "cupón", "boletin", "boletín", "newsletter",
                           "unsubscribe", "black friday", "ultimas horas",
@@ -109,7 +116,11 @@ RULES = [
 
 # --- Capa 2: IA (Groq — gratis, reusa tu GROQ_API_KEY) ---------------------
 AI_ENABLED      = True
-GROQ_MODEL      = "llama-3.3-70b-versatile"   # si Groq lo deprecia, cámbialo aquí
+#  Clasificar en 9 cajones a partir de remitente+asunto es tarea fácil: el
+#  modelo chico la hace igual de bien y tiene un límite de tokens/minuto MUY
+#  superior. Con el 70b la corrida se iba en esperas por 429 (18 min).
+#  Si notas que falla clasificando phishing, vuelve a "llama-3.3-70b-versatile".
+GROQ_MODEL      = "llama-3.1-8b-instant"
 #  Groq (plan gratis) limita por TOKENS por minuto, no solo por peticiones:
 #  lotes de 25 con 600 chars de cuerpo lo reventaban y la mitad de los lotes
 #  volvía 429. Lotes más chicos + menos texto + pausa = pasa todo.

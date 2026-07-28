@@ -13,9 +13,10 @@ import requests
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
-def _post_retry(payload, headers, timeout, tries=5):
-    """Groq (plan gratis) tira 429 seguido. Reintenta respetando su Retry-After:
-    sin esto, los lotes rechazados caían sin clasificar."""
+def _post_retry(payload, headers, timeout, tries=4):
+    """Groq (plan gratis) tira 429 seguido. Reintenta respetando su Retry-After.
+    Tope de 30s por espera: lo que no pase igual cae en 'Sin clasificar', que
+    no se purga, así que no vale la pena quemar 5 minutos en un solo lote."""
     r, wait = None, 5.0
     for n in range(1, tries + 1):
         r = requests.post(GROQ_URL, headers=headers, json=payload, timeout=timeout)
@@ -25,7 +26,7 @@ def _post_retry(payload, headers, timeout, tries=5):
             wait = float(r.headers.get("retry-after") or wait)
         except ValueError:
             pass
-        wait = min(max(wait, 2.0), 60.0)
+        wait = min(max(wait, 2.0), 30.0)
         print(f"[ai] 429: espero {wait:.0f}s (intento {n}/{tries})")
         time.sleep(wait)
         wait *= 2
